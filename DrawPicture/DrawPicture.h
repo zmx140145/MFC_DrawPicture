@@ -2,7 +2,7 @@
 // DrawPicture.h: DrawPicture 应用程序的主头文件
 //
 #pragma once
-
+#include<vector>
 #ifndef __AFXWIN_H__
 	#error "在包含此文件之前包含 'pch.h' 以生成 PCH"
 #endif
@@ -38,9 +38,22 @@ public:
 	void DRHLineDrawRect(CDC * pDC, int x, int y, int x1, int y1, COLORREF color, bool isSoild);
     void CirclePointDraw(CDC * pDC, int x0, int y0, int x, int y, COLORREF color);
 	void CirclePointSoildDraw(CDC * pDC, int x0, int y0, int x, int y, COLORREF color);
-
-	//drH画直线函数
+    //drH画直线函数
 	void DRHLine(CDC * pDC, int x0, int y0, int x1, int y1, COLORREF color);
+	/*----------------关于贝塞尔-------------------*/
+	int m_nCtrPs = 0;//（控制点数目）
+	int m_nSPs=0;//（采样点数目），
+	std::vector<CPoint> PointsVec;
+	CPoint *m_pCtrPs = NULL; // （控制点坐标），
+	CPoint *m_curve = NULL; //（全部采样点坐标）。
+	//记录两点之间
+	int InitBezier();
+	void computeCoefficients(int n, int* c);
+	void drawBezier(CDC * pDC, CPoint * curve, int m, int function, int ControllCount);
+	void Bezier2(CPoint * pCtrPs, int nCtrPs, int m, CPoint * curve);
+	void Bezier2_CalculateThisRound(float * x, float * y, int * nCtrPs, float t, CPoint * curve);
+	void Bezier(CPoint * pCtrPs, int nCtrPs, int m, CPoint *curve);
+	void computePoint(float t, CPoint *pt, int nCtrPs, CPoint * pCtrPs, int *c);
 	DECLARE_MESSAGE_MAP()
 //	afx_msg void On1rect();
 };

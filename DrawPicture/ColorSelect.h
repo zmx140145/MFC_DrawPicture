@@ -55,7 +55,7 @@ public:
 	CStatic ColorReview;
 	CDrawPictureApp* App;
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
-	afx_msg void OnStnClickedColorreview();
+	
 	CEdit HSV_VTest;
 	afx_msg void OnReleasedcaptureSliderv(NMHDR *pNMHDR, LRESULT *pResult);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);

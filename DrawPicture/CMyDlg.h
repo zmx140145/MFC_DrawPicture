@@ -13,7 +13,7 @@ public:
 	//CString m_String;
 // 对话框数据
 #ifdef AFX_DESIGN_TIME
-	enum { IDD = IDD_DIALOG1 };
+	enum { IDD = IDD_BEZIERACC };
 #endif
 
 protected:
@@ -23,4 +23,5 @@ protected:
 public:
 	CString m_strEdit;
 	afx_msg void OnClickedOk();
+	afx_msg void OnDestroy();
 };

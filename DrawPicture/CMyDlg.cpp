@@ -12,7 +12,7 @@
 IMPLEMENT_DYNAMIC(CMyDlg, CDialog)
 
 CMyDlg::CMyDlg(CWnd* pParent /*=nullptr*/)
-	: CDialog(IDD_DIALOG1, pParent)
+	: CDialog(IDD_BEZIERACC, pParent)
 	, m_strEdit(_T(""))
 {
 	//m_String = _T("");
@@ -29,13 +29,14 @@ CMyDlg::~CMyDlg()
 void CMyDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	DDX_Text(pDX, IDC_EDIT1, m_strEdit);
+	DDX_Text(pDX, IDC_BEIZIER, m_strEdit);
 }
 
 
 BEGIN_MESSAGE_MAP(CMyDlg, CDialog)
 	ON_BN_CLICKED(ID_OK, &CMyDlg::OnClickedOk)
 
+	ON_WM_DESTROY()
 END_MESSAGE_MAP()
 
 
@@ -45,9 +46,24 @@ END_MESSAGE_MAP()
 void CMyDlg::OnClickedOk()
 {
 	UpdateData(TRUE);    //用界面内容更新变量
+	int size=0;
+	for (int i = 0; i < m_strEdit.GetLength(); i++)
+	{
+		size=size*10+((int)m_strEdit.GetAt(i)-48);
+	}
+	theApp.m_nSPs = size;
+	DestroyWindow();
+	
 
-	// TODO: 在此添加控件通知处理程序代码
 }
 
 
 
+
+
+void CMyDlg::OnDestroy()
+{
+	CDialog::OnDestroy();
+	delete this;
+	// TODO: 在此处添加消息处理程序代码
+}

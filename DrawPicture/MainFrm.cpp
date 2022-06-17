@@ -114,8 +114,9 @@ BOOL CMainFrame::OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext)
 //贝塞尔曲线精度选择
 void CMainFrame::OnPupdialog()
 {
-	CMyDlg MyDlg;
-	MyDlg.DoModal();
+	CMyDlg* MyDlg = new CMyDlg;
+	MyDlg->Create(IDD_BEZIERACC, this);
+	MyDlg->ShowWindow(SW_SHOW);
 	// TODO: 在此添加命令处理程序代码
 }
 

@@ -67,10 +67,12 @@ public:
 //	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 //	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	afx_msg void On1delete();
-	afx_msg void OnPupdialog();
+
 	afx_msg void On1save();
 	afx_msg void On1open();
 
+	afx_msg void OnBezier();
+	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
 };
 
 #ifndef _DEBUG  // DrawPictureView.cpp 中的调试版本

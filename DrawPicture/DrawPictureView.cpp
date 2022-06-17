@@ -42,10 +42,11 @@ BEGIN_MESSAGE_MAP(CDrawPictureView, CView)
 //	ON_WM_RBUTTONDOWN()
 //	ON_WM_RBUTTONUP()
 	ON_COMMAND(ID_1Delete, &CDrawPictureView::On1delete)
-	ON_COMMAND(ID_PUPDIALOG, &CDrawPictureView::OnPupdialog)
 	ON_COMMAND(ID_1Save, &CDrawPictureView::On1save)
 	ON_COMMAND(ID_1OPen, &CDrawPictureView::On1open)
 	
+	ON_COMMAND(ID_Bezier, &CDrawPictureView::OnBezier)
+	ON_WM_LBUTTONDBLCLK()
 END_MESSAGE_MAP()
 
 // CDrawPictureView 构造/析构
@@ -241,6 +242,14 @@ void CDrawPictureView::OnLButtonUp(UINT nFlags, CPoint point)
 		ReleaseDC(pDC);
 		CView::OnLButtonUp(nFlags, point);
 	}
+	if (m_nWhich == 8)	//画贝塞尔曲线
+	{
+		CDC* pDC = GetDC();
+		theApp.m_nCtrPs++;
+		theApp.PointsVec.push_back(point);
+		ReleaseDC(pDC);
+		CView::OnLButtonUp(nFlags, point);
+	}
 	CView::OnLButtonUp(nFlags, point);
 }
 
@@ -256,31 +265,25 @@ void CDrawPictureView::OnMouseMove(UINT nFlags, CPoint point)
 	}
 	
 }
+//菜单按键
 void CDrawPictureView::On1line()
 {
 	m_nWhich = 1;
 	Invalidate(false);
 	// TODO: 在此添加命令处理程序代码
 }
-
-
-
 void CDrawPictureView::On1rect()
 {
 	m_nWhich = 2;
 	Invalidate(false);
 	// TODO: 在此添加命令处理程序代码
 }
-
-
 void CDrawPictureView::On1cricle()
 {
 	m_nWhich = 3;
 	Invalidate(false);
 	// TODO: 在此添加命令处理程序代码
 }
-
-
 void CDrawPictureView::On1free()
 {
 	m_nWhich = 4;
@@ -288,20 +291,12 @@ void CDrawPictureView::On1free()
 	// TODO: 在此添加命令处理程序代码
 }
 
-
-
-
-
 void CDrawPictureView::On1color()
 {
 	m_nWhich = 5;
 	Invalidate(false);
 	// TODO: 在此添加命令处理程序代码
 }
-
-
-
-
 
 void CDrawPictureView::On2color()
 {
@@ -318,17 +313,12 @@ void CDrawPictureView::On1delete()
 	Invalidate();
 	// TODO: 在此添加命令处理程序代码
 }
-
-
-void CDrawPictureView::OnPupdialog()
+void CDrawPictureView::OnBezier()
 {
-	if (Dlg.DoModal() == IDOK)	//输入完成点击OK
-		m_str = Dlg.m_strEdit;	//将对话框文本控件内容赋值给视类的字符变量
-	Invalidate();
+	m_nWhich = 8;
+	Invalidate(false);
 	// TODO: 在此添加命令处理程序代码
 }
-
-
 
 void CDrawPictureView::On1save()
 {
@@ -447,3 +437,21 @@ void CDrawPictureView::ShowBmp(CDC* pDC, CString BmpName)
 
 
 
+
+
+
+
+//左键双击
+void CDrawPictureView::OnLButtonDblClk(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	if (m_nWhich == 8)	//画贝塞尔曲线
+	{
+		CDC* pDC = GetDC();
+		theApp.InitBezier();
+		theApp.drawBezier(pDC, theApp.m_curve, theApp.m_nSPs, 1, theApp.m_nCtrPs);
+		ReleaseDC(pDC);
+		return;
+	}
+	CView::OnLButtonDblClk(nFlags, point);
+}

@@ -49,6 +49,7 @@ CDrawPictureApp::CDrawPictureApp() noexcept
 	SetAppID(_T("DrawPicture.AppID.NoVersion"));
 
 	// TODO:  在此处添加构造代码，
+
 	// 将所有重要的初始化放置在 InitInstance 中
 }
 
@@ -178,6 +179,7 @@ void CDrawPictureApp::OnAppAbout()
 	CAboutDlg aboutDlg;
 	aboutDlg.DoModal();
 }
+//画直线DRH
 void CDrawPictureApp::DRHLine(CDC* pDC, int x0, int y0, int x1, int y1, COLORREF color)
 {
 
@@ -349,6 +351,7 @@ void CDrawPictureApp::DRHLine(CDC* pDC, int x0, int y0, int x1, int y1, COLORREF
 	}
 
 }
+//画直线DDA
 void CDrawPictureApp::DDALine(CDC* pDC, int x0, int y0, int x1, int y1, COLORREF color)
 {
 	int dm = 0;
@@ -371,6 +374,7 @@ void CDrawPictureApp::DDALine(CDC* pDC, int x0, int y0, int x1, int y1, COLORREF
 		y += dy;
 	}
 }
+//画矩形
 void CDrawPictureApp::DRHLineDrawRect(CDC* pDC, int x, int y, int x1, int y1, COLORREF color, bool isSoild)
 {
 
@@ -423,6 +427,7 @@ void CDrawPictureApp::DRHLineDrawRect(CDC* pDC, int x, int y, int x1, int y1, CO
 	}
 
 }
+//画圆用半径和圆心
 void CDrawPictureApp::BRHCircle(CDC* pDC, int x0, int y0, int r, COLORREF color,bool isSoild)
 {
 	// TODO: 在此处添加实现代码.
@@ -488,7 +493,7 @@ void CDrawPictureApp::BRHCircle(CDC* pDC, int x0, int y0, int r, COLORREF color,
 	}
 	
 }
-
+//画圆用两个最远点
 void CDrawPictureApp::CirclePointDraw(CDC* pDC, int x0, int y0, int x, int y, COLORREF color)
 {
 	// TODO: 在此处添加实现代码.
@@ -501,6 +506,7 @@ void CDrawPictureApp::CirclePointDraw(CDC* pDC, int x0, int y0, int x, int y, CO
 	pDC->SetPixel(x0 + y, y0 - x, color);
 	pDC->SetPixel(x0 + x, y0 - y, color);
 }
+//画实心的圆
 void CDrawPictureApp::CirclePointSoildDraw(CDC* pDC, int x0, int y0, int x, int y, COLORREF color)
 {
 	// TODO: 在此处添加实现代码.
@@ -510,7 +516,127 @@ void CDrawPictureApp::CirclePointSoildDraw(CDC* pDC, int x0, int y0, int x, int 
 	DRHLine(pDC, x0 - y, y0 + x, x0 - y, y0 - x, color);
 
 }
+int CDrawPictureApp::InitBezier()
+{
+	
+	if (m_nCtrPs == 0 || m_nSPs == 0)
+	{
+		m_pCtrPs = NULL;
+		m_curve = NULL;
+		return 0;
+	}
+	m_pCtrPs = new CPoint[m_nCtrPs + 1]();
+	m_curve = new CPoint[m_nSPs + 1]();
+	for (int i = 0; i < m_nCtrPs; i++)
+	{
+		m_pCtrPs[i].x = PointsVec.at(i).x;
+		m_pCtrPs[i].y = PointsVec.at(i).y;
+	}
+	return 1;
+}
+void CDrawPictureApp::computeCoefficients(int n, int * c)
+{
+	//n 为控制点数目，c 为存储空间的首地址，存储内容为系数
+	{
+		int k, i;
+		for (k = 0; k <= n; k++)
+		{
+			c[k] = 1;
+			for (i = n; i >= k + 1; i--) /*求 c[k]=n*(n-1)…(k+1) */
+				c[k] *= i;
+			for (i = n - k; i >= 2; i--) /*求 c[k]/(n-k)!*/
+				c[k] /= i;
+		}
+	}
+}
+void CDrawPictureApp::drawBezier(CDC * pDC, CPoint * curve, int m, int function, int ControllCount)
+{
+	if (function == 1)
+	{
+		Bezier(m_pCtrPs, ControllCount, m, curve);
+	}
+	else
+	{
+		Bezier2(m_pCtrPs, ControllCount, m, curve);
+	}
+	for (int i = 0; i <= m; i++)
+	{
+		pDC->SetPixel(curve[i], RGB(0, 0, 255));
+	}
+	delete[] curve;
+	delete[] m_pCtrPs;
+	PointsVec.clear();
+	m_nCtrPs = 0;
+}
+void CDrawPictureApp::Bezier2(CPoint * pCtrPs, int nCtrPs, int m, CPoint * curve)
+{
+	//m 个采样点，结果保存在 curve 所指的数组里面
+	float* x1 = new float[nCtrPs];
+	float* y1 = new float[nCtrPs];
+	int n;
+	for (int j = 0; j <= m; j++)
+	{
 
+		for (int i = 0; i < nCtrPs; i++)
+		{
+			x1[i] = pCtrPs[i].x;
+			y1[i] = pCtrPs[i].y;
+		}
+		n = m_nCtrPs;
+		Bezier2_CalculateThisRound(x1, y1, &n, j / (float)m, &curve[j]);
+
+	}
+	delete[] x1;
+	delete[] y1;
+}
+void CDrawPictureApp::Bezier2_CalculateThisRound(float* x, float*y, int* nCtrPs, float t, CPoint* curve)
+{
+	for (int i = 0; i < *nCtrPs - 1; i++)
+	{
+		x[i] = x[i] + (x[i + 1] - x[i])*t;
+		y[i] = y[i] + (y[i + 1] - y[i])*t;
+	}
+	(*nCtrPs)--;
+	if (*nCtrPs <= 1)
+	{
+		curve->x = x[0];
+		curve->y = y[0];
+		return;
+	}
+	else
+	{
+		return Bezier2_CalculateThisRound(x, y, nCtrPs, t, curve);
+	}
+}
+void CDrawPictureApp::Bezier(CPoint * pCtrPs, int nCtrPs, int m, CPoint * curve)
+{
+	//m 个采样点，结果保存在 curve 所指的数组里面
+	int i;
+	int *pC = (int *)malloc(nCtrPs * sizeof(int)); //分配系数的存储空间
+	computeCoefficients(nCtrPs - 1, pC);
+	for (i = 0; i <= m; i++)
+		computePoint(i / (float)m, &curve[i], nCtrPs, pCtrPs, pC);
+	free(pC);
+
+}
+void CDrawPictureApp::computePoint(float t, CPoint * pt, int nCtrPs, CPoint * pCtrPs, int * c)
+{
+	//pt 为所求点，nCtrPs 为控制点数目，pCtrPs 为存储控制点坐标的空间首地址
+	int i, n = nCtrPs - 1;
+	float blend, t1 = 1 - t; //基函数的值
+	pt->x = 0.0;
+	pt->y = 0.0;
+	for (i = 0; i <= n; i++)
+	{
+		blend = c[i] * powf(t, i)*powf(t1, n - i); /*求 C i
+		n ti
+		(1-t)n-i
+		*/
+		pt->x += pCtrPs[i].x*blend; /*求 x(t)*/
+		pt->y += pCtrPs[i].y*blend; /*求 y(t)*/
+	}
+
+}
 // CDrawPictureApp 消息处理程序
 
 
