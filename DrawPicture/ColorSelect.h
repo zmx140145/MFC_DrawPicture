@@ -25,9 +25,6 @@ public:
 	virtual BOOL OnInitDialog();
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	void DrawHSV(CDC * pDC, int centerX, int centerY, float size, float v);
-
-
-	
 	void PointToHSVPos(float x, float y, float * h, float * s);
 	void HSVToRGB(float h, float s, float v, float * R, float * G, float * B);
 	void RGBToHSV(float R, float G, float B, float * h, float * s, float * v);
@@ -55,7 +52,6 @@ public:
 	CStatic ColorReview;
 	CDrawPictureApp* App;
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
-	
 	CEdit HSV_VTest;
 	afx_msg void OnReleasedcaptureSliderv(NMHDR *pNMHDR, LRESULT *pResult);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);

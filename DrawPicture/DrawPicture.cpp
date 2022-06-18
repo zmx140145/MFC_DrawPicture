@@ -637,6 +637,52 @@ void CDrawPictureApp::computePoint(float t, CPoint * pt, int nCtrPs, CPoint * pC
 	}
 
 }
+//画虚线
+void CDrawPictureApp::DrawDottedLine(CDC* pDC, std::vector<CPoint>& points, COLORREF color, CBitmap* map,CPoint* AnotherPoint,bool DeleteInputFalse)
+{
+	//先填充背景
+	CMainFrame*   pFrame = (CMainFrame*)AfxGetMainWnd();
+	CDrawPictureView* pView = (CDrawPictureView*)pFrame->GetActiveView();
+	CRect rect;
+	CDC tempDC;
+	pView->GetClientRect(&rect);
+	tempDC.CreateCompatibleDC(pDC);
+	CBitmap* pOldBitmap = tempDC.SelectObject(map);
+	pDC->BitBlt(0, 0, rect.Width(), rect.Height(), &tempDC, 0, 0, SRCCOPY);
+	if (DeleteInputFalse)
+	{
+		////创建画笔
+		CPen pen(PS_DASH, 1, RGB(255, 0, 255));
+		CPen* pOldPen = pDC->SelectObject(&pen);
+		if (points.size() == 1)
+		{
+			if (AnotherPoint != NULL)
+			{
+				pDC->MoveTo(points[0]);
+				//画线 
+				pDC->LineTo(*AnotherPoint);
+			}
+			
+		}
+		for (int i = 0; i < points.size() - 1; i++)
+		{
+
+			pDC->MoveTo(points[i]);
+			//画线 
+			pDC->LineTo(points[i + 1]);
+			if (i == points.size() - 2)
+			{
+				if (AnotherPoint != NULL)
+				{
+					pDC->MoveTo(points[i + 1]);
+					pDC->LineTo(*AnotherPoint);
+				}
+			}
+		}
+		pDC->SelectObject(pOldPen);
+	}
+	tempDC.DeleteDC();
+}
 // CDrawPictureApp 消息处理程序
 
 

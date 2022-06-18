@@ -43,18 +43,20 @@ protected:
 protected:
 	DECLARE_MESSAGE_MAP()
 private:
+	long LastClickLBTime = NULL;
 	CPoint pStart, pEnd;
 	CPoint point;
 	int m_nWhich=0;
 
 	CString BmpName;                               //保存图像文件文件名
 	CString EntName;                               //保存图像文件扩展名
-	CBitmap m_bitmap;                              //创建位图对象
-	
+	CBitmap m_bitmap;                            //创建位图对象
+	                      
 	void ShowBmp(CDC* pDC, CString BmpName);    //用来显示指定位图bmp的函数
 	
 
 public:
+	CBitmap* m_LastBitMap=NULL;//存储上次的位图
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void On1line();
@@ -73,6 +75,8 @@ public:
 
 	afx_msg void OnBezier();
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
+	afx_msg void OnDestroy();
+	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 };
 
 #ifndef _DEBUG  // DrawPictureView.cpp 中的调试版本

@@ -47,6 +47,8 @@ BEGIN_MESSAGE_MAP(CDrawPictureView, CView)
 	
 	ON_COMMAND(ID_Bezier, &CDrawPictureView::OnBezier)
 	ON_WM_LBUTTONDBLCLK()
+	ON_WM_DESTROY()
+	ON_WM_RBUTTONUP()
 END_MESSAGE_MAP()
 
 // CDrawPictureView 构造/析构
@@ -61,6 +63,7 @@ CDrawPictureView::CDrawPictureView() noexcept
 
 CDrawPictureView::~CDrawPictureView()
 {
+	
 }
 
 BOOL CDrawPictureView::PreCreateWindow(CREATESTRUCT& cs)
@@ -244,12 +247,45 @@ void CDrawPictureView::OnLButtonUp(UINT nFlags, CPoint point)
 	}
 	if (m_nWhich == 8)	//画贝塞尔曲线
 	{
+		if (LastClickLBTime != NULL)
+		{
+			if (GetCurrentTime() - LastClickLBTime < 200)
+			{
+				return;
+			}
+		}
+		
+		
+			//如果是第一个控制点 或者没有记录位图
+		LastClickLBTime = GetCurrentTime();
 		CDC* pDC = GetDC();
+		//如果还没有点记录 那么就是起点 那么就先保存一份当前画面 便于撤回
+		if (m_LastBitMap==NULL||theApp.m_nCtrPs == 0)
+		{
+			if (m_LastBitMap != NULL)
+			{
+				delete m_LastBitMap;
+			}
+			m_LastBitMap = new CBitmap();
+			CDC tempDC;
+			CRect rect;
+			GetClientRect(&rect);
+			tempDC.CreateCompatibleDC(pDC);
+			m_LastBitMap->CreateCompatibleBitmap(pDC, rect.Width(), rect.Height());
+			tempDC.SelectObject(m_LastBitMap);
+			tempDC.BitBlt(0, 0, rect.Width(), rect.Height(), pDC, 0, 0, SRCCOPY);
+			tempDC.DeleteDC();
+		}
+		//加点数目
 		theApp.m_nCtrPs++;
+		//把点加到vector里面
 		theApp.PointsVec.push_back(point);
+		//画虚线
+		theApp.DrawDottedLine(pDC, theApp.PointsVec, RGB(255, 0, 255), m_LastBitMap,NULL,true);
 		ReleaseDC(pDC);
 		CView::OnLButtonUp(nFlags, point);
 	}
+	
 	CView::OnLButtonUp(nFlags, point);
 }
 
@@ -263,7 +299,17 @@ void CDrawPictureView::OnMouseMove(UINT nFlags, CPoint point)
 		pDoc->m_aCurvePnts.Add(point);   //点集数组中加入一点
 		Invalidate(false);
 	}
-	
+	if (m_nWhich == 8)	//画贝塞尔曲线
+	{
+		if (theApp.m_nCtrPs != 0)
+		{
+			CDC* pDC = GetDC();
+			//画虚线并且连接鼠标
+			theApp.DrawDottedLine(pDC, theApp.PointsVec, RGB(255, 0, 255), m_LastBitMap, &point,true);
+			ReleaseDC(pDC);
+		}
+		
+	}
 }
 //菜单按键
 void CDrawPictureView::On1line()
@@ -448,10 +494,62 @@ void CDrawPictureView::OnLButtonDblClk(UINT nFlags, CPoint point)
 	if (m_nWhich == 8)	//画贝塞尔曲线
 	{
 		CDC* pDC = GetDC();
+		//保证有一定大小
+		if (theApp.m_nSPs < 100)
+		{
+			theApp.m_nSPs = 100;
+		}
 		theApp.InitBezier();
+		theApp.DrawDottedLine(pDC, theApp.PointsVec, RGB(255, 0, 255), m_LastBitMap, NULL, false);
 		theApp.drawBezier(pDC, theApp.m_curve, theApp.m_nSPs, 1, theApp.m_nCtrPs);
+		
 		ReleaseDC(pDC);
 		return;
 	}
 	CView::OnLButtonDblClk(nFlags, point);
+}
+
+
+void CDrawPictureView::OnDestroy()
+{
+	CView::OnDestroy();
+	if (m_LastBitMap)
+	{
+		delete m_LastBitMap;
+	}
+	
+	// TODO: 在此处添加消息处理程序代码
+}
+
+
+void CDrawPictureView::OnRButtonUp(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	if (m_nWhich == 8)	//画贝塞尔曲线
+	{
+		if (!theApp.PointsVec.empty())
+		{
+			theApp.PointsVec.pop_back();
+			theApp.m_nCtrPs--;
+			CDC* pDC = GetDC();
+			//保证有一定大小
+			if (theApp.m_nSPs < 100)
+			{
+				theApp.m_nSPs = 100;
+			}
+			if (theApp.m_nCtrPs >= 1)
+			{
+				theApp.DrawDottedLine(pDC, theApp.PointsVec, RGB(255, 0, 255), m_LastBitMap, &point, true);
+			}
+			else
+			{
+				theApp.DrawDottedLine(pDC, theApp.PointsVec, RGB(255, 0, 255), m_LastBitMap, NULL, false);
+			}
+			
+
+			ReleaseDC(pDC);
+			return;
+		}
+	}
+	CView::OnRButtonUp(nFlags, point);
 }

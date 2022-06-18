@@ -23,10 +23,6 @@ public:
 public:
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();
-
-
-
-	//变量
 	COLORREF SelectColor;
 
 
@@ -54,6 +50,11 @@ public:
 	void Bezier2_CalculateThisRound(float * x, float * y, int * nCtrPs, float t, CPoint * curve);
 	void Bezier(CPoint * pCtrPs, int nCtrPs, int m, CPoint *curve);
 	void computePoint(float t, CPoint *pt, int nCtrPs, CPoint * pCtrPs, int *c);
+	void DrawDottedLine(CDC * pDC, std::vector<CPoint>& points, COLORREF color, CBitmap * map, CPoint * AnotherPoint, bool DeleteInputFalse);
+
+
+
+	
 	DECLARE_MESSAGE_MAP()
 //	afx_msg void On1rect();
 };
