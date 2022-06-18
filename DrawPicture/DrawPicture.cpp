@@ -516,6 +516,7 @@ void CDrawPictureApp::CirclePointSoildDraw(CDC* pDC, int x0, int y0, int x, int 
 	DRHLine(pDC, x0 - y, y0 + x, x0 - y, y0 - x, color);
 
 }
+//根据全局变量中的控制点数和采样点数来分配空间初始化
 int CDrawPictureApp::InitBezier()
 {
 	
@@ -534,21 +535,7 @@ int CDrawPictureApp::InitBezier()
 	}
 	return 1;
 }
-void CDrawPictureApp::computeCoefficients(int n, int * c)
-{
-	//n 为控制点数目，c 为存储空间的首地址，存储内容为系数
-	{
-		int k, i;
-		for (k = 0; k <= n; k++)
-		{
-			c[k] = 1;
-			for (i = n; i >= k + 1; i--) /*求 c[k]=n*(n-1)…(k+1) */
-				c[k] *= i;
-			for (i = n - k; i >= 2; i--) /*求 c[k]/(n-k)!*/
-				c[k] /= i;
-		}
-	}
-}
+//贝塞尔曲线调用函数 function 1是定义法 2是画图法
 void CDrawPictureApp::drawBezier(CDC * pDC, CPoint * curve, int m, int function, int ControllCount)
 {
 	if (function == 1)
@@ -561,13 +548,14 @@ void CDrawPictureApp::drawBezier(CDC * pDC, CPoint * curve, int m, int function,
 	}
 	for (int i = 0; i <= m; i++)
 	{
-		pDC->SetPixel(curve[i], RGB(0, 0, 255));
+		pDC->SetPixel(curve[i], SelectColor);
 	}
 	delete[] curve;
 	delete[] m_pCtrPs;
 	PointsVec.clear();
 	m_nCtrPs = 0;
 }
+//画图法贝塞尔曲线
 void CDrawPictureApp::Bezier2(CPoint * pCtrPs, int nCtrPs, int m, CPoint * curve)
 {
 	//m 个采样点，结果保存在 curve 所指的数组里面
@@ -589,6 +577,7 @@ void CDrawPictureApp::Bezier2(CPoint * pCtrPs, int nCtrPs, int m, CPoint * curve
 	delete[] x1;
 	delete[] y1;
 }
+//配合画图法贝塞尔曲线的递归算法
 void CDrawPictureApp::Bezier2_CalculateThisRound(float* x, float*y, int* nCtrPs, float t, CPoint* curve)
 {
 	for (int i = 0; i < *nCtrPs - 1; i++)
@@ -608,18 +597,36 @@ void CDrawPictureApp::Bezier2_CalculateThisRound(float* x, float*y, int* nCtrPs,
 		return Bezier2_CalculateThisRound(x, y, nCtrPs, t, curve);
 	}
 }
+//定义法贝塞尔曲线
 void CDrawPictureApp::Bezier(CPoint * pCtrPs, int nCtrPs, int m, CPoint * curve)
 {
 	//m 个采样点，结果保存在 curve 所指的数组里面
 	int i;
 	int *pC = (int *)malloc(nCtrPs * sizeof(int)); //分配系数的存储空间
-	computeCoefficients(nCtrPs - 1, pC);
+	Bezier_ComputeCoefficients(nCtrPs - 1, pC);
 	for (i = 0; i <= m; i++)
-		computePoint(i / (float)m, &curve[i], nCtrPs, pCtrPs, pC);
+		Bezier_ComputePoint(i / (float)m, &curve[i], nCtrPs, pCtrPs, pC);
 	free(pC);
 
 }
-void CDrawPictureApp::computePoint(float t, CPoint * pt, int nCtrPs, CPoint * pCtrPs, int * c)
+//定义法计算每个t对应的基底
+void CDrawPictureApp::Bezier_ComputeCoefficients(int n, int * c)
+{
+	//n 为控制点数目，c 为存储空间的首地址，存储内容为系数
+	{
+		int k, i;
+		for (k = 0; k <= n; k++)
+		{
+			c[k] = 1;
+			for (i = n; i >= k + 1; i--) /*求 c[k]=n*(n-1)…(k+1) */
+				c[k] *= i;
+			for (i = n - k; i >= 2; i--) /*求 c[k]/(n-k)!*/
+				c[k] /= i;
+		}
+	}
+}
+//计算定义法的每一个采样点的值
+void CDrawPictureApp::Bezier_ComputePoint(float t, CPoint * pt, int nCtrPs, CPoint * pCtrPs, int * c)
 {
 	//pt 为所求点，nCtrPs 为控制点数目，pCtrPs 为存储控制点坐标的空间首地址
 	int i, n = nCtrPs - 1;
@@ -683,6 +690,315 @@ void CDrawPictureApp::DrawDottedLine(CDC* pDC, std::vector<CPoint>& points, COLO
 	}
 	tempDC.DeleteDC();
 }
+//扫描多边形
+void CDrawPictureApp::FreeET(EdgeTable & ET)
+{
+	pEdgeNode pCur;
+	if (ET.base)
+	{
+		for (int i = 0; i < ET.size; i++)
+		{
+			while (ET.base[i])
+			{
+				pCur = ET.base[i];
+				ET.base[i] = ET.base[i]->next;
+				free(pCur);
+			}
+		}
+	}
+	delete[] ET.base;
+}
+//释放AE节点并保证其连续性
+void CDrawPictureApp::FreeAE(pAENode top)
+{
+	pAENode pCur;
+	while (top)
+	{
+		pCur = top;
+		top = top->next;
+		free(pCur);
+	}
+}
+//初始化ET表
+int CDrawPictureApp::initET(EdgeTable & ET)
+{
+	FreeET(ET);
+	int cy = 1001;
+	ET.base = new pEdgeNode[cy];
+	ET.size = cy;
+	for (int i = 0; i < ET.size; i++)
+	{
+		ET.base[i] = NULL;
+	}
+	return 1;
+}
+//初始化活动边表
+int CDrawPictureApp::initAET(EdgeTable * ET)
+{
+	if (!ET)
+	{
+		return -1;
+	}
+	int i = 0;
+	while (ET->base[i] == NULL && i < ET->size)
+	{
+		i++;
+	}
+	return i;
+}
+//填充点的集合
+void CDrawPictureApp::FillPoints(CDC * pDC, PIXEL * pixels, COLORREF color)
+{
+	PIXEL* pCur = pixels;
+	while (pCur)
+	{
+		pDC->SetPixel(pCur->x, pCur->y, color);
+		pCur = pCur->next;
+	}
+}
+//两点之间的填充
+void CDrawPictureApp::FillBetweenTwoAet(pAENode top, PIXEL * pixels, int y, CDC* pDC)
+{
+
+	bool second = false;
+	int x;
+	pAENode pCur = top;
+	while (pCur)
+	{
+		if (second)
+		{
+			for (; x < (int)(pCur->xi + 0.5); x++)
+			{
+				PIXEL* pX = pixels;
+				pixels = new PIXEL{ x,y,pX };
+			}
+			second = false;
+		}
+		else
+		{
+			x = (int)(pCur->xi + 0.5);
+			second = true;
+		}
+		pCur = pCur->next;
+	}
+	FillPoints(pDC, pixels, SelectColor);
+	PIXEL* pP;
+	while (pixels)
+	{
+		pP = pixels;
+		pixels = pixels->next;
+		free(pP);
+
+	}
+}
+//多边形填充
+void CDrawPictureApp::polygonFill(EdgeTable* ET, pAENode top, PIXEL* pixels, CDC* pDC)
+{
+	int y = initAET(ET);
+	while (y < ET->size)
+	{
+		//先让不是新的节点全部更新 就是自己的x坐标要相应改变
+		UpdateAeNode(top);
+		pEdgeNode pCur = ET->base[y];
+		pAENode pPre = top;
+		//把新的边加到aen中
+		while (pCur)
+		{
+			top = new AENode{ pCur->ytop,(double)pCur->xbot,pCur->fm,pPre };
+			pPre = top;
+			pCur = pCur->next;
+
+		}
+		//把已经超出界限的删除
+		DeletAeNode(&top, y);
+		//按xi的大小排序
+		SortAENode(&top);
+		//记录当前行的点
+		FillBetweenTwoAet(top, pixels, y, pDC);
+		//把当前y坐标上的记录的排序好的相邻的两个x之间的点全部绘制颜色
+		y++;
+	}
+	//绘制完成就释放
+
+	FreeAE(Top);
+
+}
+//更新活动边表
+void CDrawPictureApp::UpdateAeNode(pAENode top)
+{
+	pAENode pCur = top;
+	while (pCur)
+	{
+
+		pCur->xi += pCur->fm;
+
+		pCur = pCur->next;
+	}
+}
+//删除活动边表过期节点
+void CDrawPictureApp::DeletAeNode(pAENode* top, int y)
+{
+	pAENode a = new aeNode();
+	pAENode pPre = a;
+	pPre->next = *top;
+	pAENode pCur = *top;
+	pAENode NeedFree;
+	while (pCur)
+	{
+		if (pCur->ytop <= y)
+		{
+
+			pPre->next = pCur->next;
+			NeedFree = pCur;
+			pCur = pCur->next;
+			free(NeedFree);
+		}
+		else {
+			pPre = pCur;
+			pCur = pCur->next;
+		}
+
+
+	}
+	*top = a->next;
+	free(a);
+}
+//给活动边表的边根据x大小排序
+void CDrawPictureApp::SortAENode(pAENode* top)
+{
+	pAENode pCur = *top;
+	pAENode a = new aeNode();
+	pAENode pPre = a;
+	pPre->next = pCur;
+	int Count = 0;
+	while (pCur)
+	{
+		Count++;
+		pCur = pCur->next;
+	}
+
+	for (int i = 0; i < Count; i++)
+	{
+		pPre = a;
+		pCur = a->next;
+		int j = 0;
+		for (; j < Count - i - 1; j++)
+		{
+			if (pCur->next)
+			{
+				if (pCur->xi > pCur->next->xi)
+				{
+					pPre->next = pCur->next;
+					pPre = pPre->next;
+					pCur->next = pPre->next;
+					pPre->next = pCur;
+				}
+				else
+				{
+					pPre = pCur;
+					pCur = pCur->next;
+				}
+			}
+		}
+	}
+	*top = a->next;
+	delete(a);
+}
+//创建ET边表
+int CDrawPictureApp::createET(std::vector<CPoint>& points, EdgeTable* ET)
+{
+	if (points.size()<=1 || !ET )
+	{
+		return 0;
+	}
+
+	int i = 0;
+	while (i + 1 < points.size())
+	{
+
+		if (points[i].y <= points[i + 1].y)
+		{
+			//i点在i+1点的下方
+			pEdgeNode edge = new EdgeNode{ points[i].x,points[i + 1].y,(double)(points[i].x - points[i + 1].x) / (points[i].y - points[i + 1].y),NULL };
+			if (ET->base[points[i].y] == NULL)
+			{
+				ET->base[points[i].y] = edge;
+			}
+			else
+			{
+				edge->next = ET->base[points[i].y];
+				ET->base[points[i].y] = edge;
+
+			}
+		}
+		else
+		{
+			//i点在i+1点的上方
+			pEdgeNode edge = new EdgeNode{ points[i + 1].x,points[i].y,(double)(points[i].x - points[i + 1].x) / (points[i].y - points[i + 1].y),NULL };
+			if (ET->base[points[i + 1].y] == NULL)
+			{
+				ET->base[points[i + 1].y] = edge;
+			}
+			else
+			{
+
+				edge->next = ET->base[points[i + 1].y];
+				ET->base[points[i + 1].y] = edge;
+			}
+		}
+		i++;
+	}
+	int nPnts = points.size() - 1;
+	//如果初始点的高度比最后那点的高度低时
+	if (points[0].y <= points[nPnts].y)
+	{
+		pEdgeNode edge = new EdgeNode{ points[0].x,points[nPnts].y,(double)(points[0].x - points[nPnts].x) / (points[0].y - points[nPnts].y),NULL };
+		if (ET->base[points[0].y] == NULL)
+		{
+			ET->base[points[0].y] = edge;
+		}
+		else
+		{
+			edge->next = ET->base[points[0].y];
+			ET->base[points[0].y] = edge;
+		}
+	}
+	else
+	{
+		pEdgeNode edge = new EdgeNode{ points[nPnts].x,points[0].y,(double)(points[0].x - points[nPnts].x) / (points[0].y - points[nPnts].y),NULL };
+		if (ET->base[points[nPnts].y] == NULL)
+		{
+			ET->base[points[nPnts].y] = edge;
+		}
+		else
+		{
+			edge->next = ET->base[points[nPnts].y];
+			ET->base[points[nPnts].y] = edge;
+		}
+	}
+	return 1;
+}
+void CDrawPictureApp::DrawPolygon(CDC* pDC,std::vector<CPoint>& points,CBitmap* map)
+{
+	ET = new EdgeTable();
+	initET(*ET);
+	createET(points, ET);
+	px = NULL;
+	Top = NULL;
+	CMainFrame*   pFrame = (CMainFrame*)AfxGetMainWnd();
+	CDrawPictureView* pView = (CDrawPictureView*)pFrame->GetActiveView();
+	CRect rect;
+	CDC tempDC;
+	pView->GetClientRect(&rect);
+	tempDC.CreateCompatibleDC(pDC);
+	CBitmap* pOldBitmap = tempDC.SelectObject(map);
+	polygonFill(ET, Top, px, &tempDC);
+	pDC->BitBlt(0, 0, rect.Width(), rect.Height(), &tempDC, 0, 0, SRCCOPY);
+	PointsVec.clear();
+	FreeET(*ET);
+	free(ET);
+}
+// points 存储顶点序列，
 // CDrawPictureApp 消息处理程序
 
 
